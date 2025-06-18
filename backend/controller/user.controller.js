@@ -27,3 +27,38 @@ module.exports.registerUser = async (req,res,next) => {
     
     res.status(201).json({token,user})
 }
+
+module.exports.loginUser = async (req,res,next) =>  {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()){
+        return res.status(400).json({
+            errors:errors.array()
+        })
+    }
+
+    const {email, password} = req.body
+
+    const user = await userModel.findOne({email}).select('+password') // Select password field as it is not selected by default
+    if (!user) {
+        return res.status(401).json({message: 'User not found'})
+    }
+
+    const isMatch = await user.comparePassword(password, user.password)
+    if (!isMatch) {
+        return res.status(401).json({message: 'Invalid credentials'})
+    }
+
+    const token = user.generateAuthToken()
+
+    // Set the token in a cookie
+    res.cookie('token', token,)
+
+    res.status(200).json({token, user})
+
+}
+
+module.exports.getUserProfile = async (req, res, next) => {
+    
+    res.status(200).json({message : 'User profile fetched successfully', user: req.user})
+
+}
